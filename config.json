@@ -1,0 +1,81 @@
+{
+	"port": 8888,
+	"debug": false,
+	"runType": "standalone",
+	"app": {
+		"title": "SnippetsApp — the Code Snippet Database",
+		"baseUrl": "http://www.example.com/",
+		"languages": [
+			{"JavaScript": "javascript"},
+			{"HTML": "html"},
+			{"XML": "xml"}
+		],
+		"categories": {
+			"Category-Group 1": [
+				"Category 1.1",
+				"Category 1.2",
+				"Category 1.3",
+				"Category 1.4"
+			],
+            "Category-Group 2": [
+				"Category 2.1",
+				"Category 2.2",
+				"Category 2.3",
+				"Category 2.4"
+			],
+            "Category-Group 3": [
+				"Category 3.1",
+				"Category 3.2",
+				"Category 3.3",
+				"Category 3.4"
+			],
+		}
+	},
+	"db": {
+		"type": "sqlite",
+		"connection": {
+			"sqlite": {
+				"file": "snippets.db"
+			},
+			"mysql": {
+				"host": "localhost",
+				"user": "root",
+				"password": "mysqlPassword",
+				"database": "SnippetsDB"
+			}
+		},
+		"typeMapping": {
+			"sqlite": {
+				"number": "INTEGER",
+				"datetime": "INTEGER",
+				"string": "TEXT",
+				"url": "TEXT"
+			},
+			"mysql": {
+				"number": "BIGINT",
+				"datetime": "BIGINT",
+				"string": "VARCHAR(4000)",
+				"url": "VARCHAR(1024)"
+			}
+		}
+	},
+	"email": {
+		"from": "snippetsapp@example.com",
+		"to": "admin@example.com",
+		"host": "smtp.example.com",
+        "port": 587, 
+        "auth": {
+            "user": "root",
+            "pass": "password"
+        }
+	},
+	"users": {
+        "admin": {
+			"password": {
+				"salt": "7c5f71c3271547ff98ad32a224715386",
+				"key": "6BkwQqWeB2/m4MoKAIpUJYbh5ZoExEDmbTs3RH8KhlBuXu0/EjXq2vTxqQCA4ouYJXbuAJ7nZuax5jGv+Ybsbw==" // 3l7cp3rbtdv4rd95ifbbeur5mfd42hctbqnwwt1z8tj
+			},
+			"secret": "OYZUSWKGIZDFI6LNOVMXCZKXFNFVU4SP"
+		}
+	}
+}
