@@ -1,0 +1,14 @@
+.meta-data-column-title {
+    width: 165px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.snippet table { table-layout: fixed; }
+.snippet table th, .snippet table td { overflow: auto; }
+
+h6 { font-weight: bold; }
+
+h6 .badge { font-size: 90%; }

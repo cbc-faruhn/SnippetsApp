@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+        <!-- bootstrap-select CSS -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/css/bootstrap-select.min.css">
+
+        <!-- Vue.js -->
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.6.0"></script>
+
+        <!-- Prism Syntax Highlighting -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/themes/prism.css" rel="stylesheet" />
+
+
+        <!-- App Style -->
+        <link href="SnippetsApp.css" rel="stylesheet" />
+
+        <title>SnippetsApp &mdash; a Snippet Database App</title>
+    </head>
+    <body>
+
+        <!--
+
+                Thanks for reading the source code. 
+
+        -->
+
+        <div id="SnippetsApp" class="container-fluid">
+
+            <div class="row">
+
+                <!-- the content side (intro + snippets) -->
+                <div class="col-xl-8">
+
+                    <div class="card mt-3 d-xl-none">
+                        <h5 class="card-header">Search &amp; Filter</h5>
+                        <div class="card-body">
+                            <form action="#">
+                                <div class="form-row">
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" placeholder="search ..." v-model="filterText">
+                                    </div>
+                                    <div class="col-6">
+                                        <select class="form-control selectpicker" multiple title="categories ..." v-model="filterCategories">
+                                            <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
+                                                <option v-for="category in categoryClass">{{ category }}</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 small text-muted d-xl-none cursor-pointer" v-on:click="showAbout()">Click here for more information <u>about this page / imprint</u>.</div>
+
+                    <div class="card mt-3" v-if="showLoading">
+                        <h5 class="card-header">Snippets</h5>
+                        <div class="card-body">
+                            Loading ...
+                        </div>
+                    </div>
+
+
+                    <div class="card mt-3" v-if="snippets.length == 0 && !showLoading">
+                        <h5 class="card-header">Snippets</h5>
+                        <div class="card-body">
+                            No snippets found ...
+                        </div>
+                    </div>
+
+                    <!-- Snippet list -->
+                    <div v-bind:class="{ 'd-none': showLoading }">
+                        <div class="card mt-3 snippet" v-bind:class="{ 'mb-3': index == snippets.length -1, 'd-none': !filter(snippet), 'd-block': filter(snippet) }" v-for="(snippet, index) in snippets" v-if="snippet.state == 'published' || showAdminControls" v-bind:id="'snippet'+ snippet.id">
+                            <h5 class="card-header">
+                                {{ snippet.title }}
+                                <span class="badge badge-danger" v-if="snippet.state == 'new'">New</span>
+                                <span class="badge badge-dark" v-if="showAdminControls && snippet.state == 'retired'">Retired</span>
+                                <span class="badge badge-warning" v-if="showAdminControls && snippet.state == 'declined'">Declined</span>
+                                <span class="badge badge-primary" v-if="showAdminControls && snippet.state == 'published'">Published</span>
+                                <span class="float-right">
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-warning': snippet.action != 'leave', 'd-none': snippet.action == 'leave'}" v-if="showAdminControls" v-on:click="markSnippet(snippet, 'leave')">Leave</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-dark': snippet.action != 'publish', 'badge-secondary': snippet.action == 'retire'}" v-if="showAdminControls && snippet.state == 'published'" v-on:click="markSnippet(snippet, 'retire')">Retire</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-primary': snippet.action != 'publish', 'badge-secondary': snippet.action == 'publish'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'published')" v-on:click="markSnippet(snippet, 'decline')">Decline</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-success': snippet.action != 'decline', 'badge-secondary': snippet.action == 'decline'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'declined')" v-on:click="markSnippet(snippet, 'publish')">Publish</span>
+                                    <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="copy(index, snippet)">Copy</span>
+                                    <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="share(index, snippet)">Share</span>
+                                </span>
+                            </h5>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tbody>
+                                        <tr v-if="showAdminControls">
+                                            <th scope="row" class="meta-data-column-title">Contributor</th>
+                                            <td><a v-bind:href="'mailto:'+ snippet.contact_email">{{ snippet.contact_name }}</a> {{ snippet.contact_ip }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row" class="meta-data-column-title">Author</th>
+                                            <td>{{ snippet.author }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row" class="meta-data-column-title">Categories</th>
+                                            <td><span v-if="snippet.categories && snippet.categories instanceof Array">{{ snippet.categories.join(', ') }}</span></td>
+                                        </tr>
+                                        <tr>
+                                            <th colspan="2" scope="row">
+                                                Code
+                                                <div class="codeBox overflow-auto">
+                                                    <pre><code class="language-js">{{ snippet.code }}</code></pre>
+                                                </div>
+                                                <textarea type="text" class="d-none" v-bind:id="'snippet'+ snippet.id +'Code'">{{ snippet.code }}</textarea>
+
+                                                <em style="font-weight: normal;" v-if="snippet.remarks != null && snippet.remarks != ''">
+                                                    {{ snippet.remarks }}
+                                                </em>
+                                            </th>
+                                        </tr>
+                                        <tr v-if="snippet.download != null && snippet.download != ''">
+                                            <th scope="row" class="meta-data-column-title">Download</th>
+                                            <td><a v-bind:href="snippet.download">{{ snippet.download.substr(snippet.download.lastIndexOf('/') +1) }}</a> (XML exported entity)</td>
+                                        </tr>
+                                        <tr v-if="snippet.external_link != null && snippet.external_link != ''">
+                                            <th scope="row" class="meta-data-column-title">Link for reference</th>
+                                            <td><a v-bind:href="snippet.external_link" target="_new">{{ snippet.external_link }}</a></td>
+                                        </tr>
+                                        <tr v-if="snippet.tags != null && snippet.tags.length > 0">
+                                            <th scope="row" class="meta-data-column-title">Tags / Keywords</th>
+                                            <td><span v-if="snippet.tags && snippet.tags instanceof Array">{{ snippet.tags.join(', ') }}</span></td>
+                                        </tr>
+                                        <tr v-if="snippet.state == 'new' && snippet.submitted_at instanceof Date">
+                                            <th scope="row" class="meta-data-column-title">Submitting Date</th>
+                                            <td>{{ snippet.submitted_at.getFullYear() +'-'+ (snippet.submitted_at.getMonth() +1) +'-'+ snippet.submitted_at.getDate() }}</td>
+                                        </tr>
+                                        <tr v-if="snippet.published_at instanceof Date">
+                                            <th scope="row" class="meta-data-column-title">Publishing Date</th>
+                                            <td>{{ snippet.published_at.getFullYear() +'-'+ (snippet.published_at.getMonth() +1) +'-'+ snippet.published_at.getDate() }}</td>
+                                        </tr>
+                                        <tr v-if="snippet.state == 'retired' && snippet.retired_at instanceof Date">
+                                            <th scope="row" class="meta-data-column-title">Retiring Date</th>
+                                            <td>{{ snippet.retired_at.getFullYear() +'-'+ (snippet.retired_at.getMonth() +1) +'-'+ snippet.retired_at.getDate() }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="col-xl-4 mt-3 position-fixed d-none d-xl-block" style="right: 0; top: 0;">
+                    <!-- Search Box -->
+                    <div class="card">
+                        <h5 class="card-header">Search &amp; Filter</h5>
+                        <div class="card-body">
+                            <form action="#">
+                                <div class="form-row">
+                                    <div class="col-6">
+                                        <input type="text" class="form-control" placeholder="search ..." v-model="filterText">
+                                    </div>
+                                    <div class="col-6">
+                                        <select class="form-control selectpicker" multiple title="categories ..." v-model="filterCategories">
+                                            <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
+                                                <option v-for="category in categoryClass">{{ category }}</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- About Box -->
+                    <div class="card mt-3">
+                        <h5 class="card-header">
+                                <a class="mt-3 cursor-pointer" data-toggle="collapse" data-target="#aboutBox" aria-expanded="false" aria-controls="aboutBox">About (click to show)</a>
+                        </h5>
+                        <div class="card-body collapse" id="aboutBox">
+                            <div class="container aboutContent">
+                            </div>         
+                        </div>
+                    </div>
+
+                    <!-- Contribute Box -->
+                    <div class="card mt-3">
+                        <h5 class="card-header">Contribute</h5>
+                        <div class="card-body">
+                            Do you have code you are reusing now &amp; then? Share it here to make development faster for everyone!<br/>
+                            <br/>
+                            <button class="btn btn-primary" v-on:click="contribute()">Contribute</button> 
+                            <button class="btn btn-primary" v-if="showAdminAuth && !showAdminControls" v-on:click="loadAdminInterface()">Administer</button>
+                            <button class="btn btn-primary" v-if="showAdminControls" v-on:click="applySnippet()">Save  & Refresh</button> 
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 small">Powered by SnippetsApp</div>
+                </div>
+            </div>
+
+            <!-- Snippet Detail Modal -->
+            <div class="modal fade" id="aboutDialog" tabindex="-1" role="dialog" aria-labelledby="aboutDialogTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-light">
+                            <h5 class="modal-title" id="aboutDialogTitle">About</h5>
+                            <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div id="aboutDialogBody" class="modal-body aboutContent">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contribution Modal -->
+            <div class="modal fade" id="contributionDialog" tabindex="-1" role="dialog" aria-labelledby="contributionDialogTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-light">
+                            <h5 class="modal-title" id="contributionDialogTitle">Contribute to the Snippet Database</h5>
+                            <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div id="contributionDialogBody" class="modal-body">
+                            <form>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="snippetAuthor">Author</label>
+                                        <input type="text" class="form-control" id="snippetAuthor" placeholder="Display Name">
+                                        <small id="snippetAuthorHelpBlock" class="form-text text-muted">
+                                            Name to be displayed as Author
+                                        </small>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="contributorName">Full Name</label>
+                                        <input type="text" class="form-control" id="contributorName" placeholder="Full name">
+                                        <small id="contributorNameHelpBlock" class="form-text text-muted">
+                                            stored, but not publicly shown
+                                        </small>
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="contributorMail">Email</label>
+                                        <input type="email" class="form-control" id="contributorMail" placeholder="Email">
+                                        <small id="contributorMailHelpBlock" class="form-text text-muted">
+                                            stored, but not publicly shown
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <small id="snippetLinkHelpBlock" class="form-text text-muted d-block mb-3">
+                                        Your contact data (Name, E-Mail) is stored together with your IP address but never disclosed to the public. This information is needed to prevent misusage or contact you in case of questions regarding your contribution. By submitting  your contribution, you declare that your code snippet doesn't violate any third-party rights like copyrights or licenses.
+                                    </small>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="snippetTitle" class="col-sm-2 col-form-label">Title</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" id="snippetTitle" placeholder="...">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="snippetCategories" class="col-sm-2 col-form-label">Categories</label>
+                                    <div class="col-sm-10">
+                                        <select id="snippetCategories" class="form-control selectpicker" multiple>
+                                            <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
+                                                <option v-for="category in categoryClass">{{ category }}</option>
+                                            </optgroup>
+                                        </select> 
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="snippetCode" class="col-sm-2 col-form-label">Code</label>
+                                    <div class="col-sm-10">
+                                        <textarea class="form-control text-monospace" id="snippetCode" rows="5"></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="snippetRemarks" class="col-sm-2 col-form-label">Remarks</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" id="snippetRemarks" placeholder="Hints for using the code block ...">
+                                        <small id="snippetRemarksHelpBlock" class="form-text text-muted">
+                                            optional
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="snippetLink" class="col-sm-2 col-form-label">Link for reference</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" id="snippetLink" placeholder="http:// ...">
+                                        <small id="snippetLinkHelpBlock" class="form-text text-muted">
+                                            optional, e.g. a link where the snippets usage is demonstrated in a tutorial
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label for="snippetTags" class="col-sm-2 col-form-label">Tags / Keywords</label>
+                                    <div class="col-sm-10">
+                                        <input type="text" class="form-control" id="snippetTags" placeholder="...">
+                                        <small id="snippetTagsHelpBlock" class="form-text text-muted">
+                                            comma-separated list of words or phrases to support search
+                                        </small>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" v-on:click="postContributedSnippet()">Contribute</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Publish Modal -->
+            <div class="modal fade" id="adminAuthDialog" tabindex="-1" role="dialog" aria-labelledby="adminAuthDialogTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-light">
+                            <h5 class="modal-title" id="adminAuthDialogTitle"></h5>
+                            <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div id="adminAuthDialogBody" class="modal-body">
+                            <form>
+                                <div class="form-row">
+                                    <div class="form-group col-md-4">
+                                        <label for="adminAuthUsername">Username</label>
+                                        <input type="test" class="form-control" id="adminAuthUsername" placeholder="Enter username">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="adminAuthPassword">Password</label>
+                                        <input type="password" class="form-control" id="adminAuthPassword" placeholder="Enter Password">
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        <label for="adminAuthToken">Authentication Token</label>
+                                        <input type="number" class="form-control" id="adminAuthToken" placeholder="Enter Authentication Token">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" id="adminAuthDialogSubmitBtn" class="btn btn-primary" data-dismiss="modal">Authorize</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Share Modal -->
+            <div class="modal fade" id="shareDialog" tabindex="-1" role="dialog" aria-labelledby="shareDialogTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark text-light">
+                            <h5 class="modal-title" id="shareDialogTitle">Copy Link to share the Snippet "<span id="shareDialogSnippetTitle"></span>"</h5>
+                            <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div id="shareDialogBody" class="modal-body">
+                                <input type="text" class="form-control" id="shareDialogInput" placeholder="http://www.snippetsnow.com/#snippet">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- jQuery first, then Popper.js, then Bootstrap JS and bootstrap-select -->
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/js/bootstrap-select.min.js"></script>
+
+        <!-- Prism Syntax Highlighting -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/prism.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.17.1/plugins/autoloader/prism-autoloader.min.js"></script>
+
+        <!-- App Logic -->
+        <script src="SnippetsAppConfig.js"></script>
+        <script src="SnippetsApp.js"></script>
+    </body>
+</html>
