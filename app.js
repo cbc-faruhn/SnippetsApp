@@ -348,10 +348,10 @@ else {
         }
     });
 
-    function sendMail(subject, text) {
+    function sendMail(subject, text, to) {
         var mailOptions = {
             from:    config.email.from,
-            to:      config.email.to,
+            to:      to || config.email.to,
             subject: subject,
             text:    text
         };
@@ -425,27 +425,32 @@ else {
                 for (var k = 0; k < snippets.length; k++) {
                     var snippet = snippets[k];
 
-                    if (snippet.state == 'published') {
-                        snippet.published_at = new Date().getTime();
-                    }
-                    if (snippet.state == 'retired') {
-                        snippet.retired_at = new Date().getTime();
-                    }
-
-                    snippet = sqlEscapeObject(snippet);
-
-                    var keys = Object.keys(snippet);
-                    keys.splice(keys.indexOf('id'), 1);
-
-                    sql += 'UPDATE snippet SET ';
-                    for(var i = 0; i < keys.length; i++) {
-                        if (i > 0) {
-                            sql += ', ';
+                    if (snippet.state == 'deleted') {
+                        sql += 'DELETE FROM snippet WHERE id = '+ sqlEscape(snippet.id) +';\n';
+                    } else {
+                        if (snippet.state == 'published') {
+                            snippet.published_at = new Date().getTime();
                         }
-                        sql += keys[i] +' = '+ snippet[keys[i]];
+                        if (snippet.state == 'retired') {
+                            snippet.retired_at = new Date().getTime();
+                        }
+
+                        snippet = sqlEscapeObject(snippet);
+
+                        var keys = Object.keys(snippet);
+                        keys.splice(keys.indexOf('id'), 1);
+
+                        sql += 'UPDATE snippet SET ';
+                        for(var i = 0; i < keys.length; i++) {
+                            if (i > 0) {
+                                sql += ', ';
+                            }
+                            sql += keys[i] +' = '+ snippet[keys[i]];
+                        }
+                        sql += ' WHERE id = '+ snippet.id +';\n';
                     }
-                    sql += ' WHERE id = '+ snippet.id +';\n';
                 }
+                
                 sql += 'COMMIT TRANSACTION;';
             }
 
@@ -556,7 +561,7 @@ else {
             snippet.contact_ip   = req.ip;
 
             // notify admin of new snippet
-            var mailSubject = 'New Snippet Contribution "'+ snippet.title +'"';
+            var mailSubject = 'SnippetsNow Contribution "'+ snippet.title +'"';
             var mailBody    = 'A new Snippet has been contributed by '+ snippet.contact_name +' ('+ snippet.contact_email +') as '+ snippet.author +'!\n';
                 mailBody   += '\n';
                 mailBody   += 'Title: '+ snippet.title +'\n';
@@ -572,6 +577,11 @@ else {
                 mailBody   += 'Admin-Link: '+ config.app.baseUrl +'?admin=true#snippet:'+ snippet.id;
                 mailBody   += '\n';
             sendMail(mailSubject, mailBody);
+
+            // confirm receiving of the snippet
+            mailBody  = 'Many thanks for your contribution to SnippetsNow!\n';
+            mailBody += 'Your code snippet will be reviewed and published as soon as possible.';
+            sendMail(mailSubject, mailBody, snippet.contact_name +' <'+ snippet.contact_email +'>');
 
             snippet = sqlEscapeObject(snippet);
             var keys = Object.keys(snippet);
