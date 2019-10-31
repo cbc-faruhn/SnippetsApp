@@ -69,85 +69,120 @@
                     </div>
 
 
-                    <div class="card mt-3" v-if="snippets.length == 0 && !showLoading">
+                    <div class="card mt-3" v-bind:class="{ 'd-none': snippets.length > 0 || showLoading }">
                         <h5 class="card-header">Snippets</h5>
                         <div class="card-body">
                             No snippets found ...
                         </div>
                     </div>
 
-                    <!-- Snippet list -->
-                    <div v-bind:class="{ 'd-none': showLoading }">
-                        <div class="card mt-3 snippet" v-bind:class="{ 'mb-3': index == snippets.length -1, 'd-none': !filter(snippet), 'd-block': filter(snippet) }" v-for="(snippet, index) in snippets" v-if="snippet.state == 'published' || showAdminControls" v-bind:id="'snippet'+ snippet.id">
+                    <!-- Snippet Overview -->
+                    <div class="pt-3" v-bind:class="{ 'd-none': showLoading }" id="overviewBox">
+                        <div class="card">
                             <h5 class="card-header">
-                                {{ snippet.title }}
-                                <span class="badge badge-danger" v-if="snippet.state == 'new'">New</span>
-                                <span class="badge badge-dark" v-if="showAdminControls && snippet.state == 'retired'">Retired</span>
-                                <span class="badge badge-warning" v-if="showAdminControls && snippet.state == 'declined'">Declined</span>
-                                <span class="badge badge-primary" v-if="showAdminControls && snippet.state == 'published'">Published</span>
-                                <span class="float-right">
-                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-warning': snippet.action != 'leave', 'd-none': snippet.action == 'leave'}" v-if="showAdminControls" v-on:click="markSnippet(snippet, 'leave')">Leave</span>
-                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-dark': snippet.action != 'publish', 'badge-secondary': snippet.action == 'retire'}" v-if="showAdminControls && snippet.state == 'published'" v-on:click="markSnippet(snippet, 'retire')">Retire</span>
-                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-primary': snippet.action != 'publish', 'badge-secondary': snippet.action == 'publish'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'published')" v-on:click="markSnippet(snippet, 'decline')">Decline</span>
-                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-success': snippet.action != 'decline', 'badge-secondary': snippet.action == 'decline'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'declined')" v-on:click="markSnippet(snippet, 'publish')">Publish</span>
-                                    <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="copy(index, snippet)">Copy</span>
-                                    <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="share(index, snippet)">Share</span>
-                                </span>
+                                <a class="cursor-pointer" data-toggle="collapse" data-target="#snippetOverview" aria-expanded="true" aria-controls="snippetOverview">
+                                    <strong>Overview</strong>
+                                    <span class="float-right">
+                                        <span class="badge badge-secondary cursor-pointer font-weight-normal">Hide / Show</span>
+                                    </span>
+                                </a>
                             </h5>
-                            <div class="card-body">
-                                <table class="table table-borderless">
+                            <div class="card-body collapse show" id="snippetOverview">
+                                Below you find an overview of all (unfiltered) Snippets available. Use the search to narrow results or directly click a link below.
+                                <table class="table table-sm mt-3">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Snippet</th>
+                                            <th scope="col">Categories</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
-                                        <tr v-if="showAdminControls">
-                                            <th scope="row" class="meta-data-column-title">Contributor</th>
-                                            <td><a v-bind:href="'mailto:'+ snippet.contact_email">{{ snippet.contact_name }}</a> {{ snippet.contact_ip }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row" class="meta-data-column-title">Author</th>
-                                            <td>{{ snippet.author }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th scope="row" class="meta-data-column-title">Categories</th>
+                                        <tr v-for="(snippet, index) in snippets" v-if="snippet.state == 'published' || showAdminControls" v-bind:class="{ 'd-none': !filter(snippet), 'tr': filter(snippet) }">
+                                            <td><a v-bind:href="'#snippet'+ snippet.id">{{ snippet.title }}</a></td>
                                             <td><span v-if="snippet.categories && snippet.categories instanceof Array">{{ snippet.categories.join(', ') }}</span></td>
-                                        </tr>
-                                        <tr>
-                                            <th colspan="2" scope="row">
-                                                Code
-                                                <div class="codeBox overflow-auto">
-                                                    <pre><code class="language-js">{{ snippet.code }}</code></pre>
-                                                </div>
-                                                <textarea type="text" class="d-none" v-bind:id="'snippet'+ snippet.id +'Code'">{{ snippet.code }}</textarea>
-
-                                                <em style="font-weight: normal;" v-if="snippet.remarks != null && snippet.remarks != ''">
-                                                    {{ snippet.remarks }}
-                                                </em>
-                                            </th>
-                                        </tr>
-                                        <tr v-if="snippet.download != null && snippet.download != ''">
-                                            <th scope="row" class="meta-data-column-title">Download</th>
-                                            <td><a v-bind:href="snippet.download">{{ snippet.download.substr(snippet.download.lastIndexOf('/') +1) }}</a> (XML exported entity)</td>
-                                        </tr>
-                                        <tr v-if="snippet.external_link != null && snippet.external_link != ''">
-                                            <th scope="row" class="meta-data-column-title">Link for reference</th>
-                                            <td><a v-bind:href="snippet.external_link" target="_new">{{ snippet.external_link }}</a></td>
-                                        </tr>
-                                        <tr v-if="snippet.tags != null && snippet.tags.length > 0">
-                                            <th scope="row" class="meta-data-column-title">Tags / Keywords</th>
-                                            <td><span v-if="snippet.tags && snippet.tags instanceof Array">{{ snippet.tags.join(', ') }}</span></td>
-                                        </tr>
-                                        <tr v-if="snippet.state == 'new' && snippet.submitted_at instanceof Date">
-                                            <th scope="row" class="meta-data-column-title">Submitting Date</th>
-                                            <td>{{ snippet.submitted_at.getFullYear() +'-'+ (snippet.submitted_at.getMonth() +1) +'-'+ snippet.submitted_at.getDate() }}</td>
-                                        </tr>
-                                        <tr v-if="snippet.published_at instanceof Date">
-                                            <th scope="row" class="meta-data-column-title">Publishing Date</th>
-                                            <td>{{ snippet.published_at.getFullYear() +'-'+ (snippet.published_at.getMonth() +1) +'-'+ snippet.published_at.getDate() }}</td>
-                                        </tr>
-                                        <tr v-if="snippet.state == 'retired' && snippet.retired_at instanceof Date">
-                                            <th scope="row" class="meta-data-column-title">Retiring Date</th>
-                                            <td>{{ snippet.retired_at.getFullYear() +'-'+ (snippet.retired_at.getMonth() +1) +'-'+ snippet.retired_at.getDate() }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Snippet list -->
+                    <div v-bind:class="{ 'd-none': showLoading }">
+                        <div class="pt-3 snippet" v-if="snippet.state == 'published' || showAdminControls" v-for="(snippet, index) in snippets" v-bind:id="'snippet'+ snippet.id" v-bind:class="{ 'mb-3': index == snippets.length -1, 'd-none': !filter(snippet), 'd-block': filter(snippet) }">
+                            <div class="card">
+                                <h5 class="card-header">
+                                    {{ snippet.title }}
+                                    <span class="badge badge-danger" v-if="snippet.state == 'new'">New</span>
+                                    <span class="badge badge-dark font-weight-normal" v-if="showAdminControls && snippet.state == 'retired'">Retired</span>
+                                    <span class="badge badge-warning font-weight-normal" v-if="showAdminControls && snippet.state == 'declined'">Declined</span>
+                                    <span class="badge badge-primary font-weight-normal" v-if="showAdminControls && snippet.state == 'published'">Published</span>
+                                    <span class="float-right">
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-warning': snippet.action != 'leave',   'd-none': snippet.action == 'leave'}" v-if="showAdminControls" v-on:click="markSnippet(snippet, 'leave')">Leave</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-danger':  snippet.action == 'leave' || snippet.action == 'delete',  'badge-secondary': snippet.action != 'delete'  && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'declined' || snippet.state == 'retired')" v-on:click="markSnippet(snippet, 'delete')">Delete</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-dark':    snippet.action == 'leave' || snippet.action == 'retire',  'badge-secondary': snippet.action != 'retire'  && snippet.action != 'leave'}" v-if="showAdminControls && snippet.state == 'published'" v-on:click="markSnippet(snippet, 'retire')">Retire</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-info': snippet.action == 'leave'    || snippet.action == 'decline', 'badge-secondary': snippet.action != 'decline' && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'published')" v-on:click="markSnippet(snippet, 'decline')">Decline</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-success': snippet.action == 'leave' || snippet.action == 'publish', 'badge-secondary': snippet.action != 'publish' && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'declined')" v-on:click="markSnippet(snippet, 'publish')">Publish</span>
+                                        <span v-if="showAdminControls">|</span>
+                                        <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="copy(index, snippet)">Copy</span>
+                                        <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="share(index, snippet)">Share</span>
+                                    </span>
+                                </h5>
+                                <div class="card-body">
+                                    <table class="table table-borderless">
+                                        <tbody>
+                                            <tr v-if="showAdminControls">
+                                                <th scope="row" class="meta-data-column-title">Contributor</th>
+                                                <td><a v-bind:href="'mailto:'+ snippet.contact_email">{{ snippet.contact_name }}</a> {{ snippet.contact_ip }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row" class="meta-data-column-title">Author</th>
+                                                <td>{{ snippet.author }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th scope="row" class="meta-data-column-title">Categories</th>
+                                                <td><span v-if="snippet.categories && snippet.categories instanceof Array">{{ snippet.categories.join(', ') }}</span></td>
+                                            </tr>
+                                            <tr>
+                                                <th colspan="2" scope="row">
+                                                    Code
+                                                    <div class="codeBox overflow-auto">
+                                                        <pre><code class="language-js">{{ snippet.code }}</code></pre>
+                                                    </div>
+                                                    <textarea type="text" class="d-none" v-bind:id="'snippet'+ snippet.id +'Code'">{{ snippet.code }}</textarea>
+
+                                                    <em style="font-weight: normal;" v-if="snippet.remarks != null && snippet.remarks != ''">
+                                                        {{ snippet.remarks }}
+                                                    </em>
+                                                </th>
+                                            </tr>
+                                            <tr v-if="snippet.download != null && snippet.download != ''">
+                                                <th scope="row" class="meta-data-column-title">Download</th>
+                                                <td><a v-bind:href="snippet.download">{{ snippet.download.substr(snippet.download.lastIndexOf('/') +1) }}</a> (XML exported entity)</td>
+                                            </tr>
+                                            <tr v-if="snippet.external_link != null && snippet.external_link != ''">
+                                                <th scope="row" class="meta-data-column-title">Link for reference</th>
+                                                <td><a v-bind:href="snippet.external_link" target="_new">{{ snippet.external_link }}</a></td>
+                                            </tr>
+                                            <tr v-if="snippet.tags != null && snippet.tags.length > 0">
+                                                <th scope="row" class="meta-data-column-title">Tags / Keywords</th>
+                                                <td><span v-if="snippet.tags && snippet.tags instanceof Array">{{ snippet.tags.join(', ') }}</span></td>
+                                            </tr>
+                                            <tr v-if="snippet.state == 'new' && snippet.submitted_at instanceof Date">
+                                                <th scope="row" class="meta-data-column-title">Submitting Date</th>
+                                                <td>{{ snippet.submitted_at.getFullYear() +'-'+ (snippet.submitted_at.getMonth() +1) +'-'+ snippet.submitted_at.getDate() }}</td>
+                                            </tr>
+                                            <tr v-if="snippet.published_at instanceof Date">
+                                                <th scope="row" class="meta-data-column-title">Publishing Date</th>
+                                                <td>{{ snippet.published_at.getFullYear() +'-'+ (snippet.published_at.getMonth() +1) +'-'+ snippet.published_at.getDate() }}</td>
+                                            </tr>
+                                            <tr v-if="snippet.state == 'retired' && snippet.retired_at instanceof Date">
+                                                <th scope="row" class="meta-data-column-title">Retiring Date</th>
+                                                <td>{{ snippet.retired_at.getFullYear() +'-'+ (snippet.retired_at.getMonth() +1) +'-'+ snippet.retired_at.getDate() }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -179,7 +214,12 @@
                     <!-- About Box -->
                     <div class="card mt-3">
                         <h5 class="card-header">
-                                <a class="mt-3 cursor-pointer" data-toggle="collapse" data-target="#aboutBox" aria-expanded="false" aria-controls="aboutBox">About (click to show)</a>
+                                <a class="mt-3 cursor-pointer" data-toggle="collapse" data-target="#aboutBox" aria-expanded="false" aria-controls="aboutBox">
+                                    About
+                                    <span class="float-right">
+                                        <span class="badge badge-secondary cursor-pointer font-weight-normal">Hide / Show</span>
+                                    </span>
+                                </a>
                         </h5>
                         <div class="card-body collapse" id="aboutBox">
                             <div class="container aboutContent">
@@ -199,11 +239,13 @@
                         </div>
                     </div>
                     
-                    <div class="mt-3 small">Powered by SnippetsApp</div>
+                    <div class="mt-3 small text-muted">Powered by <a href="https://github.com/cbc-faruhn/SnippetsApp" class="text-muted" target="_new"><u>SnippetsApp</u></a></div>
                 </div>
             </div>
+            
+            <a href="#overviewBox" class="btn btn-primary position-fixed mb-3 mr-3" style="bottom: 0; right: 0; z-index:9999999;" title="back to top">&uarr;</a>
 
-            <!-- Snippet Detail Modal -->
+            <!-- About Modal -->
             <div class="modal fade" id="aboutDialog" tabindex="-1" role="dialog" aria-labelledby="aboutDialogTitle" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                     <div class="modal-content">

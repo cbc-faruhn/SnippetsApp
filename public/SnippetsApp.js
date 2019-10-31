@@ -51,9 +51,9 @@ var SnippetsApp = new Vue({
 
     updated: function() {
         Prism.highlightAll();
-        /*$('.codeBox').each(function(index, element) {
-            $(element).width($(element).closest('.card-body').width());
-        });*/
+        
+        $('.snippet').removeClass('mb-3');
+        $('.snippet.d-block').last().addClass('mb-3');
     },
 
     methods: {
@@ -97,7 +97,7 @@ var SnippetsApp = new Vue({
             $('#snippetTitle').val('');
             $('#snippetCode').val('');
             $('#snippetRemarks').val('');
-            $('#snippetCategories').selectpicker('deselectAll');
+            try { $('#snippetCategories').selectpicker('deselectAll'); } catch(err) {}
             $('#snippetTags').val('');
             $('#snippetLink').val('');
 
@@ -320,6 +320,10 @@ var SnippetsApp = new Vue({
 
                 if (this.snippets[i].action == 'retire') {
                     snippetsToApply.push({id: this.snippets[i].id, state: 'retired'});
+                }
+
+                if (this.snippets[i].action == 'delete') {
+                    snippetsToApply.push({id: this.snippets[i].id, state: 'deleted'});
                 }
             }
 
