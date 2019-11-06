@@ -603,7 +603,7 @@ else {
             snippet.contact_ip   = req.get('!~Passenger-Client-Address') || req.ip;
 
             // notify admin of new snippet
-            var mailSubject = 'SnippetsNow Contribution "'+ snippet.title +'"';
+            var mailSubject = config.app.title +' Contribution "'+ snippet.title +'"';
             var mailBody    = 'A new Snippet has been contributed by '+ snippet.contact_name +' ('+ snippet.contact_email +') as '+ snippet.author +'!\n';
                 mailBody   += '\n';
                 mailBody   += 'Title: '+ snippet.title +'\n';
@@ -621,7 +621,7 @@ else {
             sendMail(mailSubject, mailBody);
 
             // confirm receiving of the snippet
-            mailBody  = 'Many thanks for your contribution to SnippetsNow!\n';
+            mailBody  = 'Many thanks for your contribution to '+ config.app.title +'!\n';
             mailBody += 'Your code snippet will be reviewed and published as soon as possible.';
             sendMail(mailSubject, mailBody, snippet.contact_name +' <'+ snippet.contact_email +'>');
 
