@@ -50,13 +50,15 @@
 				"number": "INTEGER",
 				"datetime": "INTEGER",
 				"string": "TEXT",
-				"url": "TEXT"
+				"url": "TEXT",
+				"key": "TEXT"
 			},
 			"mysql": {
 				"number": "BIGINT",
 				"datetime": "BIGINT",
-				"string": "VARCHAR(4000)",
-				"url": "VARCHAR(1024)"
+				"string": "TEXT",
+				"url": "VARCHAR(1024)",
+				"key": "CHAR(32)"
 			}
 		}
 	},
