@@ -4,6 +4,7 @@
         <!-- Required meta tags -->
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="Find code snippets for ServiceNow Development and contribute to the repository.">
         <link rel="icon" href="favicon.ico" type="image/x-icon">
 
         <!-- Bootstrap CSS -->
@@ -42,20 +43,21 @@
                     <div class="card mt-3 d-xl-none">
                         <h5 class="card-header">Search &amp; Filter</h5>
                         <div class="card-body">
-                            <form action="#">
-                                <div class="form-row">
-                                    <div class="col-6">
-                                        <input type="text" class="form-control" placeholder="search ..." v-model="filterText">
-                                    </div>
-                                    <div class="col-6">
-                                        <select class="form-control selectpicker" multiple title="categories ..." v-model="filterCategories">
-                                            <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
-                                                <option v-for="category in categoryClass">{{ category }}</option>
-                                            </optgroup>
-                                        </select>
-                                    </div>
+                            <div class="form-row">
+                                <div class="col-6">
+                                    <input type="text" class="form-control" placeholder="search ..." v-model="filterText">
                                 </div>
-                            </form>
+                                <div class="col-6">
+                                    <select class="form-control selectpicker category-picker" multiple title="categories ..." v-model="filterCategories">
+                                        <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
+                                            <option v-for="category in categoryClass">{{ category }}</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3 mt-3" v-bind:class="{ 'd-none': !filterIsActive() }">
+                                <button class="float-right cursor-pointer btn btn-primary btn-sm" v-on:click="clearFilter()">Clear Filter</button>
+                            </div>
                         </div>
                     </div>
 
@@ -68,7 +70,6 @@
                         </div>
                     </div>
 
-
                     <div class="card mt-3" v-bind:class="{ 'd-none': snippets.length > 0 || showLoading }">
                         <h5 class="card-header">Snippets</h5>
                         <div class="card-body">
@@ -77,11 +78,11 @@
                     </div>
 
                     <!-- Snippet Overview -->
-                    <div class="pt-3" v-bind:class="{ 'd-none': showLoading }" id="overviewBox">
+                    <div class="pt-3" v-bind:class="{ 'd-none': showLoading || snippets.length == 0 }" id="overviewBox">
                         <div class="card">
                             <h5 class="card-header">
                                 <a class="cursor-pointer" data-toggle="collapse" data-target="#snippetOverview" aria-expanded="true" aria-controls="snippetOverview">
-                                    <strong>Overview</strong>
+                                    <strong>Overview (<span id="snippetsCount">0</span> Snippets<span v-bind:class="{ 'd-none': !filterIsActive() }">&nbsp;&mdash;&nbsp;filtered</span>)</strong>
                                     <span class="float-right">
                                         <span class="badge badge-secondary cursor-pointer font-weight-normal">Hide / Show</span>
                                     </span>
@@ -92,8 +93,8 @@
                                 <table class="table table-sm mt-3">
                                     <thead>
                                         <tr>
-                                            <th scope="col">Snippet</th>
-                                            <th scope="col">Categories</th>
+                                            <th scope="col" class="border-top-0">Snippet</th>
+                                            <th scope="col" class="border-top-0">Categories</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -108,7 +109,7 @@
                     </div>
 
                     <!-- Snippet list -->
-                    <div v-bind:class="{ 'd-none': showLoading }">
+                    <div v-bind:class="{ 'd-none': showLoading || snippets.length == 0 }">
                         <div class="pt-3 snippet" v-if="snippet.state == 'published' || showAdminControls" v-for="(snippet, index) in snippets" v-bind:id="'snippet'+ snippet.id" v-bind:class="{ 'mb-3': index == snippets.length -1, 'd-none': !filter(snippet), 'd-block': filter(snippet) }">
                             <div class="card">
                                 <h5 class="card-header">
@@ -121,7 +122,7 @@
                                         <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-warning': snippet.action != 'leave',   'd-none': snippet.action == 'leave'}" v-if="showAdminControls" v-on:click="markSnippet(snippet, 'leave')">Leave</span>
                                         <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-danger':  snippet.action == 'leave' || snippet.action == 'delete',  'badge-secondary': snippet.action != 'delete'  && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'declined' || snippet.state == 'retired')" v-on:click="markSnippet(snippet, 'delete')">Delete</span>
                                         <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-dark':    snippet.action == 'leave' || snippet.action == 'retire',  'badge-secondary': snippet.action != 'retire'  && snippet.action != 'leave'}" v-if="showAdminControls && snippet.state == 'published'" v-on:click="markSnippet(snippet, 'retire')">Retire</span>
-                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-info': snippet.action == 'leave'    || snippet.action == 'decline', 'badge-secondary': snippet.action != 'decline' && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'published')" v-on:click="markSnippet(snippet, 'decline')">Decline</span>
+                                        <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-primary': snippet.action == 'leave' || snippet.action == 'decline', 'badge-secondary': snippet.action != 'decline' && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'published')" v-on:click="markSnippet(snippet, 'decline')">Decline</span>
                                         <span class="badge cursor-pointer font-weight-normal" v-bind:class="{ 'badge-success': snippet.action == 'leave' || snippet.action == 'publish', 'badge-secondary': snippet.action != 'publish' && snippet.action != 'leave'}" v-if="showAdminControls && (snippet.state == 'new' || snippet.state == 'declined')" v-on:click="markSnippet(snippet, 'publish')">Publish</span>
                                         <span v-if="showAdminControls">|</span>
                                         <span class="badge badge-secondary cursor-pointer font-weight-normal" v-on:click="copy(index, snippet)">Copy</span>
@@ -147,7 +148,7 @@
                                                 <th colspan="2" scope="row">
                                                     Code
                                                     <div class="codeBox overflow-auto">
-                                                        <pre><code class="language-js">{{ snippet.code }}</code></pre>
+                                                        <pre><code v-bind:class="'language-'+ snippet.language">{{ snippet.code }}</code></pre>
                                                     </div>
                                                     <textarea type="text" class="d-none" v-bind:id="'snippet'+ snippet.id +'Code'">{{ snippet.code }}</textarea>
 
@@ -194,20 +195,21 @@
                     <div class="card">
                         <h5 class="card-header">Search &amp; Filter</h5>
                         <div class="card-body">
-                            <form action="#">
-                                <div class="form-row">
-                                    <div class="col-6">
-                                        <input type="text" class="form-control" placeholder="search ..." v-model="filterText">
-                                    </div>
-                                    <div class="col-6">
-                                        <select class="form-control selectpicker" multiple title="categories ..." v-model="filterCategories">
-                                            <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
-                                                <option v-for="category in categoryClass">{{ category }}</option>
-                                            </optgroup>
-                                        </select>
-                                    </div>
+                            <div class="form-row">
+                                <div class="col-6">
+                                    <input type="text" class="form-control" placeholder="search ..." v-model="filterText">
                                 </div>
-                            </form>
+                                <div class="col-6">
+                                    <select class="form-control selectpicker category-picker" multiple title="categories ..." v-model="filterCategories">
+                                        <optgroup  v-for="(categoryClass, categoryClassKey) in categories" v-bind:label="categoryClassKey">
+                                            <option v-for="category in categoryClass">{{ category }}</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3 mt-3" v-bind:class="{ 'd-none': !filterIsActive() }">
+                                <button class="float-right cursor-pointer btn btn-primary btn-sm" v-on:click="clearFilter()">Clear Filter</button>
+                            </div>
                         </div>
                     </div>
 
@@ -242,8 +244,6 @@
                     <div class="mt-3 small text-muted">Powered by <a href="https://github.com/cbc-faruhn/SnippetsApp" class="text-muted" target="_new"><u>SnippetsApp</u></a></div>
                 </div>
             </div>
-            
-            <a href="#overviewBox" class="btn btn-primary position-fixed mb-3 mr-3" style="bottom: 0; right: 0; z-index:9999999;" title="back to top">&uarr;</a>
 
             <!-- About Modal -->
             <div class="modal fade" id="aboutDialog" tabindex="-1" role="dialog" aria-labelledby="aboutDialogTitle" aria-hidden="true">
@@ -300,7 +300,7 @@
                                     </div>
                                 </div>
                                 <div class="form-row">
-                                    <small id="snippetLinkHelpBlock" class="form-text text-muted d-block mb-3">
+                                    <small class="form-text text-muted d-block mb-3">
                                         Your contact data (Name, E-Mail) is stored together with your IP address but never disclosed to the public. This information is needed to prevent misusage or contact you in case of questions regarding your contribution. By submitting  your contribution, you declare that your code snippet doesn't violate any third-party rights like copyrights or licenses.
                                     </small>
                                 </div>
@@ -324,6 +324,9 @@
                                     <label for="snippetCode" class="col-sm-2 col-form-label">Code</label>
                                     <div class="col-sm-10">
                                         <textarea class="form-control text-monospace" id="snippetCode" rows="5"></textarea>
+                                        <select id="snippetLanguage" class="mt-3 float-right selectpicker show-tick language-picker" title="language">
+                                            <option v-for="language in languages" v-bind:value="language[Object.getOwnPropertyNames(language)[0]]">{{ Object.getOwnPropertyNames(language)[0] }}</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="form-group row">
@@ -418,6 +421,8 @@
                     </div>
                 </div>
             </div>
+
+            <a href="#overviewBox" class="btn btn-primary position-fixed mb-3 mr-3" style="bottom: 0; right: 0;" title="back to top">&uarr;</a>
         </div>
 
         <!-- jQuery first, then Popper.js, then Bootstrap JS and bootstrap-select -->

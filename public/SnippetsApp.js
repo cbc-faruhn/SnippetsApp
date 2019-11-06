@@ -3,6 +3,8 @@ var SnippetsApp = new Vue({
     data: {
         title: window.SnippetsAppConfig.title,
         categories: window.SnippetsAppConfig.categories,
+        languages: window.SnippetsAppConfig.languages,
+        defaultLanguage: window.SnippetsAppConfig.defaultLanguage,
 
         baseUrl: '',
         showIntro: true,
@@ -19,7 +21,7 @@ var SnippetsApp = new Vue({
         document.title = this.title;
 
         // load the about box's content
-        $.get('/about.html', function(data, textStatus, jqXHR) {
+        $.get('/about.html?now='+ new Date().getTime(), function(data, textStatus, jqXHR) {
             $('.aboutContent').html(data);
         });
 
@@ -54,11 +56,16 @@ var SnippetsApp = new Vue({
         
         $('.snippet').removeClass('mb-3');
         $('.snippet.d-block').last().addClass('mb-3');
+
+        $('#snippetsCount').html(this.snippetShowCount())
     },
 
     methods: {
         snippetShowCount: function() {
-            return $('.snippet.d-block').length;
+            var totalSnippets  = $('.snippet').length;
+            var hiddenSnippets = $('.snippet.d-none').length;
+
+            return totalSnippets - hiddenSnippets;
         },
 
         showAbout: function() {
@@ -98,6 +105,7 @@ var SnippetsApp = new Vue({
             $('#snippetCode').val('');
             $('#snippetRemarks').val('');
             try { $('#snippetCategories').selectpicker('deselectAll'); } catch(err) {}
+            try { $('#snippetLanguage').selectpicker('val', this.defaultLanguage); } catch(err) {}
             $('#snippetTags').val('');
             $('#snippetLink').val('');
 
@@ -125,8 +133,6 @@ var SnippetsApp = new Vue({
         },
 
         convertRawSnippets: function(snippets) {
-            console.log('Raw:\n'+ JSON.stringify(snippets, null, '\t'));
-
             if (!(snippets instanceof Array)) {
                 snippets = [].push(snippets);
             }
@@ -177,8 +183,6 @@ var SnippetsApp = new Vue({
                 snippets[i].action = 'leave';
             }
 
-            console.log('Processed:\n'+ JSON.stringify(snippets, null, '\t'));
-
             return snippets;
         },
 
@@ -192,6 +196,7 @@ var SnippetsApp = new Vue({
 
                 title: $('#snippetTitle').val(),
                 code: $('#snippetCode').val(),
+                language: $('#snippetLanguage').val(),
                 remarks: $('#snippetRemarks').val(),
 
                 categories: ($('#snippetCategories').val() +'').split(','),
@@ -250,7 +255,7 @@ var SnippetsApp = new Vue({
             });
             $.post('/snippet', JSON.stringify(snippet), function(data, textStatus, jqXHR) {
                 if (data.result == 'success') {                        
-                    // switch on admin interface
+                    // add returned snippet to the interface
                     thisArg.snippets.unshift(thisArg.convertRawSnippets(data.object));
                     alert('Snippet has been handed in!');
                     $('#contributionDialog').modal('hide');
@@ -266,7 +271,7 @@ var SnippetsApp = new Vue({
             this.snippets = [];
             this.showLoading = true;
 
-            $.get('/snippets/published', function(data, textStatus, jqXHR) {
+            $.get('/snippets/published?now='+ new Date().getTime(), function(data, textStatus, jqXHR) {
                 if (data.result == 'success') {
                     thisArg.snippets = thisArg.convertRawSnippets(data.object);
                     thisArg.showLoading = false;
@@ -287,7 +292,7 @@ var SnippetsApp = new Vue({
                         'Authorization': 'Basic '+ btoa(username +':'+ token +':'+ password)
                     }
                 });
-                $.get('/snippets', function(data, textStatus, jqXHR) {
+                $.get('/snippets?now='+ new Date().getTime(), function(data, textStatus, jqXHR) {
                     if (data.result == 'success') {                        
                         // switch on admin interface
                         thisArg.snippets = thisArg.convertRawSnippets(data.object);
@@ -336,8 +341,9 @@ var SnippetsApp = new Vue({
                     }
                 });
                 $.post('/snippets', JSON.stringify(snippetsToApply), function(data, textStatus, jqXHR) {
-                    if (data.result == 'success') {                        
+                    if (data.result == 'success') {                    
                         // switch on admin interface
+                        thisArg.snippets = [];
                         thisArg.snippets = thisArg.convertRawSnippets(data.object);
                         thisArg.showLoading = false;
                     } else {
@@ -398,6 +404,16 @@ var SnippetsApp = new Vue({
             }
 
             return show;
+        },
+
+        filterIsActive: function() {
+            return this.filterText != '' || this.filterCategories.length > 0;
+        },
+
+        clearFilter: function() {
+            try { $('.category-picker').selectpicker('deselectAll'); } catch(err) {}
+            this.filterCategories = [];
+            this.filterText = '';
         },
 
         copy: function(index, snippet) {
