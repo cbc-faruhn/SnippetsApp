@@ -3,8 +3,8 @@
 	"debug": false,
 	"runType": "standalone",
 	"app": {
-		"title": "SnippetsNow — the ServiceNow&reg; Snippet Database",
-		"baseUrl": "http://www.snippetsnow.com/",
+		"title": "SnippetsApp — the Code Snippet Database",
+		"baseUrl": "http://www.example.com/",
 		"defaultLanguage": "javascript",
 		"languages": [
 			{"JavaScript": "javascript"},
@@ -12,42 +12,36 @@
 			{"HTML": "html"}
 		],
 		"categories": {
-			"Server-Side": [
-				"Attachment",
-				"Scheduled Jobs",
-				"Mail Scripts",
-				"Action Scripts",
-				"ECC Queue",
-				"REST",
-				"SOAP",
-				"Catalog",
-				"Server-Side Miscellaneous"
+			"Category-Group 1": [
+				"Category 1.1",
+				"Category 1.2",
+				"Category 1.3",
+				"Category 1.4"
 			],
-			"Client-Side": [
-				"Form",
-				"List",
-				"Catalog UI",
-				"Client-Side Miscellaneous"
+            "Category-Group 2": [
+				"Category 2.1",
+				"Category 2.2",
+				"Category 2.3",
+				"Category 2.4"
 			],
-			"Portal": [
-				"Widget"
+            "Category-Group 3": [
+				"Category 3.1",
+				"Category 3.2",
+				"Category 3.3",
+				"Category 3.4"
 			],
-			"General": [
-				"Security",
-				"Patterns"
-			]
 		}
 	},
 	"db": {
-		"type": "mysql",
+		"type": "sqlite",
 		"connection": {
 			"sqlite": {
 				"file": "snippets.db"
 			},
 			"mysql": {
 				"host": "localhost",
-				"user": "snippets",
-				"password": "k47p0~bA",
+				"user": "root",
+				"password": "mysqlPassword",
 				"database": "SnippetsDB"
 			}
 		},
@@ -56,35 +50,33 @@
 				"number": "INTEGER",
 				"datetime": "INTEGER",
 				"string": "TEXT",
-				"url": "TEXT",
-				"key": "TEXT"
+				"url": "TEXT"
 			},
 			"mysql": {
 				"number": "BIGINT",
 				"datetime": "BIGINT",
-				"string": "TEXT",
-				"url": "VARCHAR(1024)",
-				"key": "CHAR(32)"
+				"string": "VARCHAR(4000)",
+				"url": "VARCHAR(1024)"
 			}
 		}
 	},
 	"email": {
-		"from": "SnippetsNow <snippetsnow@cbc-faruhn.com>",
-		"to": "hello@cbc-faruhn.com",
-		"host": "smtp.office365.com",
-		"port": 587,
-		"auth": {
-			"user": "hello@cbc-faruhn.com",
-			"pass": "B3rlin#1cbc_"
-		}
+		"from": "snippetsapp@example.com",
+		"to": "admin@example.com",
+		"host": "smtp.example.com",
+        "port": 587, 
+        "auth": {
+            "user": "root",
+            "pass": "password"
+        }
 	},
 	"users": {
-		"ibfaruhn": {
+        "admin": {
 			"password": {
-				"salt": "03cdfab6c303440ba9ebc5baf8379785",
-				"key": "0l4kPjKrUaCCCHlZAQSryqrbN8Cg7H6DH5ypOYiZKGfe0e0GiihWdhU9/jZkGmLFgNlX5kWItOJh8yOLH+PC0g=="
+				"salt": "7c5f71c3271547ff98ad32a224715386",
+				"key": "6BkwQqWeB2/m4MoKAIpUJYbh5ZoExEDmbTs3RH8KhlBuXu0/EjXq2vTxqQCA4ouYJXbuAJ7nZuax5jGv+Ybsbw==" // 3l7cp3rbtdv4rd95ifbbeur5mfd42hctbqnwwt1z8tj
 			},
-			"secret": "LBWDQZDFKMYFG3TJLFZWYZ2DIRBEGK3C"
+			"secret": "OYZUSWKGIZDFI6LNOVMXCZKXFNFVU4SP"
 		}
 	}
 }
