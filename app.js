@@ -11,6 +11,7 @@ const authenticator = require('otplib/authenticator');
 // webserver
 const express       = require('express');
 const app           = express();
+const compression   = require('compression')
 const helmet        = require('helmet');
 const rateLimit     = require("express-rate-limit");
 const apiLimiter    = rateLimit({
@@ -28,30 +29,54 @@ var mysql           = require('mysql');
 // system
 var args            = process.argv.slice(2);
 
+function leftPad(k, pattern, str) {
+    if (typeof str != 'string') {
+        str = str +'';
+    }
+
+    while (str.length <  k) {
+        str = pattern + str;
+    }
+
+    return str;
+}
+
+function rightPad(k, pattern, str) {
+    if (typeof str != 'string') {
+        str = str +'';
+    }
+
+    while (str.length <  k) {
+        str += pattern;
+    }
+
+    return str;
+}
+
 function reportLog(msg) {
     var od = new Date();
-    var d  = od.getUTCFullYear() +'-'+ (od.getUTCMonth() +1) +'-'+ od.getUTCDate();
-    var dt = od.getUTCFullYear() +'-'+ (od.getUTCMonth() +1) +'-'+ od.getUTCDate() +' '+ od.getUTCHours() +':'+ od.getUTCMinutes() +':'+ od.getUTCSeconds() +'.'+ od.getUTCMilliseconds();
+    var d  = od.getUTCFullYear() +'-'+ leftPad(2, '0', od.getUTCMonth() +1) +'-'+ leftPad(2, '0', od.getUTCDate());
+    var dt = od.getUTCFullYear() +'-'+ leftPad(2, '0', od.getUTCMonth() +1) +'-'+ leftPad(2, '0', od.getUTCDate()) +' '+ leftPad(2, '0', od.getUTCHours()) +':'+ leftPad(2, '0', od.getUTCMinutes()) +':'+ leftPad(2, '0', od.getUTCSeconds()) +'.'+ leftPad(3, '0', od.getUTCMilliseconds());
 
-    fs.appendFile('log_'+ d +'.txt', dt +'   LOG: '+ msg, (err) => {
+    fs.appendFile('log_'+ d +'.txt', dt +'   LOG: '+ msg +'\n', (err) => {
         if (err) {
             reportError(err);
         }
     });
-    console.log(d +' '+ msg);
+    console.log(dt +' '+ msg);
 }
 
 function reportError(msg) {
     var od = new Date();
-    var d  = od.getUTCFullYear() +'-'+ (od.getUTCMonth() +1) +'-'+ od.getUTCDate();
-    var dt = od.getUTCFullYear() +'-'+ (od.getUTCMonth() +1) +'-'+ od.getUTCDate() +' '+ od.getUTCHours() +':'+ od.getUTCMinutes() +':'+ od.getUTCSeconds() +'.'+ od.getUTCMilliseconds();
+    var d  = od.getUTCFullYear() +'-'+ leftPad(2, '0', od.getUTCMonth() +1) +'-'+ leftPad(2, '0', od.getUTCDate());
+    var dt = od.getUTCFullYear() +'-'+ leftPad(2, '0', od.getUTCMonth() +1) +'-'+ leftPad(2, '0', od.getUTCDate()) +' '+ leftPad(2, '0', od.getUTCHours()) +':'+ leftPad(2, '0', od.getUTCMinutes()) +':'+ leftPad(2, '0', od.getUTCSeconds()) +'.'+ leftPad(3, '0', od.getUTCMilliseconds());
 
-    fs.appendFile('error_'+ d +'.txt', dt +' ERROR: '+ msg, (err) => {
+    fs.appendFile('error_'+ d +'.txt', dt +' ERROR: '+ msg +'\n', (err) => {
         if (err) {
             console.error('LOG-ERROR: '+ err);
         }
     });
-    console.error(d +' '+ msg);
+    console.error(dt +' '+ msg);
 }
 
 function generateUUID() {
@@ -252,6 +277,8 @@ else {
     }
 
     function sqlRun(statement, callback) {
+        if (config.debug) reportLog('--\n'+ statement +'\n--');
+
         if (config.db.type == 'sqlite') {
             db.all(statement, callback);
         } else {
@@ -260,10 +287,20 @@ else {
     }
 
     function sqlExec(statement, callback) {
+        if (config.debug) reportLog('--\n'+ statement +'\n--');
+
         if (config.db.type == 'sqlite') {
             db.exec(statement, callback);
         } else {
             db.query(statement, callback)
+        }
+    }
+
+    function wrapTransaction(statement) {
+        if (config.db.type == 'sqlite') {
+            return 'BEGIN TRANSACTION;\n'+ statement +'\nCOMMIT TRANSACTION;';
+        } else {
+            return 'START TRANSACTION;\n'+ statement +'\nCOMMIT;';
         }
     }
 
@@ -327,7 +364,7 @@ else {
     }
 
     // first create the snippets table (if not already existing)
-    sqlRun('CREATE TABLE IF NOT EXISTS snippet (id '+ dbTypes['string'] +' PRIMARY KEY, title '+ dbTypes['string'] +', author '+ dbTypes['string'] +', contact_name '+ dbTypes['string'] +', contact_email '+ dbTypes['string'] +', contact_ip '+ dbTypes['string'] +', categories '+ dbTypes['string'] +', code '+ dbTypes['string'] +', remarks '+ dbTypes['string'] +', tags '+ dbTypes['string'] +', download '+ dbTypes['url'] +', external_link '+ dbTypes['url'] +', published_by '+ dbTypes['string'] +', submitted_at '+ dbTypes['datetime'] +', published_at '+ dbTypes['datetime'] +', retired_at '+ dbTypes['datetime'] +', state '+ dbTypes['string'] +');', function(err, rows) {
+    sqlRun('CREATE TABLE IF NOT EXISTS snippet (id '+ dbTypes['key'] +' PRIMARY KEY, title '+ dbTypes['string'] +', author '+ dbTypes['string'] +', contact_name '+ dbTypes['string'] +', contact_email '+ dbTypes['string'] +', contact_ip '+ dbTypes['string'] +', categories '+ dbTypes['string'] +', code '+ dbTypes['string'] +', language '+ dbTypes['string'] +', remarks '+ dbTypes['string'] +', tags '+ dbTypes['string'] +', download '+ dbTypes['url'] +', external_link '+ dbTypes['url'] +', published_by '+ dbTypes['string'] +', submitted_at '+ dbTypes['datetime'] +', published_at '+ dbTypes['datetime'] +', retired_at '+ dbTypes['datetime'] +', state '+ dbTypes['string'] +');', function(err, rows) {
         if (err) {
             reportError(err);
         }
@@ -370,7 +407,21 @@ else {
         type: '*/*'
     }));
     app.use(helmet());
+    app.use(compression({
+        filter: shouldCompress,
+        level: 9
+    }));
     app.use('/', express.static('public'));
+
+    function shouldCompress (req, res) {
+        if (req.headers['x-no-compression']) {
+            // don't compress responses with this request header
+            return false
+        }
+
+        // fallback to standard filter function
+        return compression.filter(req, res);
+    }
 
     /* Provide /SnippetsAppConfig.js as the "app" branch in the config file  */
     app.all('/SnippetsAppConfig.js', function(req, res) {
@@ -410,8 +461,6 @@ else {
 
             sql = 'SELECT * FROM snippet '+ state +' -- '+ req.method +' '+ req.path;
 
-            if (config.debug) reportLog('--\n'+ sql +'\n--');
-
             sqlRunResponse(sql, res);
         }
     });
@@ -421,7 +470,6 @@ else {
             var sql = '';
 
             if (snippets.length > 0) {
-                sql += 'BEGIN TRANSACTION;\n';
                 for (var k = 0; k < snippets.length; k++) {
                     var snippet = snippets[k];
 
@@ -450,11 +498,9 @@ else {
                         sql += ' WHERE id = '+ snippet.id +';\n';
                     }
                 }
-                
-                sql += 'COMMIT TRANSACTION;';
-            }
 
-            if (config.debug) reportLog('--\n'+ sql +'\n--');
+                sql = wrapTransaction(sql);
+            }
 
             sqlExec(sql, function(err) {
                 if (err) {
@@ -462,8 +508,6 @@ else {
                 }
 
                 sql = 'SELECT * FROM snippet -- '+ req.method +' '+ req.path;
-
-                if (config.debug) reportLog('--\n'+ sql +'\n--');
 
                 sqlRunResponse(sql, res);
             })
@@ -477,7 +521,7 @@ else {
             var fields = '*';
 
             if (state == 'published') {
-                fields = 'id, title, author, categories, code, remarks, tags, download, external_link, published_by, submitted_at, published_at, retired_at, state';
+                fields = 'id, title, author, categories, code, language, remarks, tags, download, external_link, published_by, submitted_at, published_at, retired_at, state';
             }
 
             // state "undisclosed" is a shortcut for new and declined snippets
@@ -488,8 +532,6 @@ else {
             }
 
             sql = 'SELECT '+ fields +' FROM snippet WHERE '+ state +' -- '+ req.method +' '+ req.path;
-
-            if (config.debug) reportLog('--\n'+ sql +'\n--');
 
             sqlRunResponse(sql, res);
         }
@@ -558,7 +600,7 @@ else {
             snippet.id           = generateUUID();
             snippet.submitted_at = new Date().getTime();
             snippet.state        = 'new';
-            snippet.contact_ip   = req.ip;
+            snippet.contact_ip   = req.get('!~Passenger-Client-Address') || req.ip;
 
             // notify admin of new snippet
             var mailSubject = 'SnippetsNow Contribution "'+ snippet.title +'"';
@@ -567,7 +609,7 @@ else {
                 mailBody   += 'Title: '+ snippet.title +'\n';
                 mailBody   += 'Categories: '+ snippet.categories.join(', ') +'\n';
                 mailBody   += '\n';
-                mailBody   += 'Code:\n'
+                mailBody   += 'Code ('+ snippet.language +'):\n'
                 mailBody   += snippet.code +'\n';
                 mailBody   += '\n';
                 mailBody   += 'Remarks: '+ snippet.remarks +'\n';
@@ -595,8 +637,6 @@ else {
             }
             sql += ') -- '+ req.method +' '+ req.path;
 
-            if (config.debug) reportLog('--\n'+ sql +'\n--');
-
             sqlRunResponse(sql, res);
         }
     });
@@ -605,8 +645,6 @@ else {
             let id = req.params.id;
 
             sql = 'SELECT * FROM snippet WHERE id = '+ sqlEscape(id) +' -- '+ req.method +' '+ req.path;
-            
-            if (config.debug) reportLog('--\n'+ sql +'\n--');
 
             sqlRunResponse(sql, res);
         }
@@ -635,8 +673,6 @@ else {
                 sql += keys[i] +' = '+ snippet[keys[i]];
             }
             sql += ' WHERE id = '+ sqlEscape(id);
-                
-            if (config.debug) reportLog('--\n'+ sql +'\n--');
 
             sqlExec(sql, function(err) {
                 if (err) {
@@ -645,13 +681,17 @@ else {
 
                 sql = 'SELECT * FROM snippet WHERE id = '+ sqlEscape(id) +' -- '+ req.method +' '+ req.path;
 
-                if (config.debug) reportLog('--\n'+ sql +'\n--');
-
                 sqlRunResponse(sql, res);
             });
         }
     });
     app.use("/snippet", apiLimiter);
+
+    app.get('/lastPublishTimestamp', function(req, res) {
+        var sql = 'SELECT published_at FROM snippet ORDER  BY published_at DESC LIMIT 1';
+        sqlRunResponse(sql, res);
+    });
+    app.use("/lastPublishTimestamp", apiLimiter);
 
     // add fault-tolerance by wrapping each request in a try-catch-block
     app.use(function(req, res, next) {
