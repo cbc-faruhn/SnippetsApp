@@ -171,15 +171,15 @@
                                             </tr>
                                             <tr v-if="snippet.state == 'new' && snippet.submitted_at instanceof Date">
                                                 <th scope="row" class="meta-data-column-title">Submitting Date</th>
-                                                <td>{{ snippet.submitted_at.getFullYear() +'-'+ (snippet.submitted_at.getMonth() +1) +'-'+ snippet.submitted_at.getDate() }}</td>
+                                                <td>{{ formatDate(snippet.submitted_at) }}</td>
                                             </tr>
                                             <tr v-if="snippet.published_at instanceof Date">
                                                 <th scope="row" class="meta-data-column-title">Publishing Date</th>
-                                                <td>{{ snippet.published_at.getFullYear() +'-'+ (snippet.published_at.getMonth() +1) +'-'+ snippet.published_at.getDate() }}</td>
+                                                <td>{{ formatDate(snippet.published_at) }}</td>
                                             </tr>
                                             <tr v-if="snippet.state == 'retired' && snippet.retired_at instanceof Date">
                                                 <th scope="row" class="meta-data-column-title">Retiring Date</th>
-                                                <td>{{ snippet.retired_at.getFullYear() +'-'+ (snippet.retired_at.getMonth() +1) +'-'+ snippet.retired_at.getDate() }}</td>
+                                                <td>{{ formatDate(snippet.retired_at) }}</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -325,7 +325,7 @@
                                     <div class="col-sm-10">
                                         <textarea class="form-control text-monospace" id="snippetCode" rows="5"></textarea>
                                         <select id="snippetLanguage" class="mt-3 float-right selectpicker show-tick language-picker" title="language">
-                                            <option v-for="language in languages" v-bind:value="language[Object.getOwnPropertyNames(language)[0]]">{{ Object.getOwnPropertyNames(language)[0] }}</option>
+                                            <option v-for="language in languages" v-bind:value="getLanguageCode(language)">{{ getLanguageTitle(language) }}</option>
                                         </select>
                                     </div>
                                 </div>

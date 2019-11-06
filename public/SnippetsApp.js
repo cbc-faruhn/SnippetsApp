@@ -61,6 +61,46 @@ var SnippetsApp = new Vue({
     },
 
     methods: {
+        leftPad: function(k, pattern, str) {
+            if (typeof str != 'string') {
+                str = str +'';
+            }
+
+            while (str.length <  k) {
+                str = pattern + str;
+            }
+
+            return str;
+        },
+
+        rightPad: function(k, pattern, str) {
+            if (typeof str != 'string') {
+                str = str +'';
+            }
+
+            while (str.length <  k) {
+                str += pattern;
+            }
+
+            return str;
+        },
+
+        getLanguageTitle: function(language) {
+            for (k in language) {
+                if (k.indexOf('_') != 0) return k;
+            }
+        },
+
+        getLanguageCode: function(language) {
+            for (k in language) {
+                if (k.indexOf('_') != 0) return language[k];
+            }
+        },
+
+        formatDate: function(d) {
+            return this.leftPad(4, '0', d.getFullYear()) +'-'+ this.leftPad(2, '0', d.getMonth() +1) +'-'+ this.leftPad(2, '0', d.getDate());
+        },
+
         snippetShowCount: function() {
             var totalSnippets  = $('.snippet').length;
             var hiddenSnippets = $('.snippet.d-none').length;
