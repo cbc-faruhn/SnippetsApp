@@ -24,7 +24,7 @@ Viewing the QR Code allows you to add the second factor to your Google Authentic
   
 # Configure
 
-Within the config.json file you can find different to be configured parameters, like:
+Within the config.json file you can find different, to be configured, parameters, like:
 + HTTP port to run on
 + App Title (UI + Notifications)
 + base URL
