@@ -19,7 +19,7 @@ npm install
 node app.js --generateUser <your desired admin user name>
 node app.js --QRCode <your desired admin user name>
 ```
-Replace <your desired admin user name> with your desired admin user name, e.g. rudi.reviewer
+Replace ```<your desired admin user name>``` with your desired admin user name, e.g. rudi.reviewer
 Viewing the QR Code allows you to add the second factor to your Google Authenticator App.
   
 # Configure
